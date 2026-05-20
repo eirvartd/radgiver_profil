@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rådgiver – egenskaper og score</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f4f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    border: 0.5px solid #ddd;
+    padding: 1.25rem;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 1rem;
+  }
+
+  .axis-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .axis-num {
+    font-size: 11px;
+    color: #aaa;
+    min-width: 14px;
+    text-align: right;
+  }
+
+  .axis-name {
+    font-size: 13px;
+    border: none;
+    border-bottom: 0.5px solid #e0e0e0;
+    background: transparent;
+    color: #1a1a1a;
+    padding: 2px 4px;
+    flex: 1;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .axis-name:focus { border-bottom-color: #1D9E75; }
+
+  .teams-section { margin-top: 1.5rem; }
+
+  .team-block { margin-bottom: 1.25rem; }
+
+  .team-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .team-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .team-name-input {
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    border-bottom: 0.5px solid #e0e0e0;
+    background: transparent;
+    color: #1a1a1a;
+    padding: 2px 4px;
+    flex: 1;
+    outline: none;
+  }
+
+  .team-name-input:focus { border-bottom-color: #1D9E75; }
+
+  .remove-btn {
+    font-size: 11px;
+    color: #bbb;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .remove-btn:hover { color: #e24b4a; }
+
+  .scores-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .score-row span {
+    font-size: 11px;
+    color: #aaa;
+    min-width: 12px;
+  }
+
+  .score-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: #e8e8e8;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .score-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #1D9E75;
+    cursor: pointer;
+  }
+
+  .score-val {
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 18px;
+    color: #444;
+    text-align: right;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  button.action {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 0.5px solid #ccc;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  button.action:hover { background: #f0f0f0; }
+
+  button.action.primary {
+    background: #1D9E75;
+    border-color: #1D9E75;
+    color: #fff;
+  }
+
+  button.action.primary:hover { background: #178a64; }
+
+  .chart-panel {
+    background: #fff;
+    border-radius: 12px;
+    border: 0.5px solid #ddd;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  canvas { display: block; width: 100%; max-width: 480px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .legend-dot-lg {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 0.75rem;
+    text-align: center;
+  }
+
+  .print-note {
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .panel, .chart-panel { border: 0.5px solid #ccc; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Rådgiver – egenskaper og score</h1>
+    <p>Sett score på rådgiverne og sammenlign profiler</p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div class="panel">
+        <div class="panel-title">Egenskaper</div>
+        <div id="labels-container"></div>
+
+        <div class="teams-section">
+          <div class="panel-title">Rådgivere / grupper</div>
+          <div id="teams-container"></div>
+          <div class="btn-row no-print">
+            <button class="action" onclick="addTeam()">+ Legg til</button>
+            <button class="action" onclick="resetAll()">Nullstill</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row no-print" style="margin-top:1rem;">
+        <button class="action primary" onclick="window.print()">Skriv ut / lagre som PDF</button>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <canvas id="radarCanvas" width="480" height="460"></canvas>
+      <div class="legend" id="legend"></div>
+      <p class="hint">Dra i skyverne for å justere score 1–10</p>
+    </div>
+  </div>
+
+  <p class="print-note no-print">Laget med Claude · Sparebanken Norge</p>
+</div>
+
+<script>
+const DEFAULT_LABELS = [
+  "1. Growth mindset",
+  "2. Handlekraft / endringsvillig",
+  "3. Trygg i rådgivning",
+  "4. Verdiskaper (tilføre merverdi)",
+  "5. Sterk relasjonsbygger",
+  "6. Proaktiv og utadrettet",
+  "7. Digital trygghet",
+  "8. Selvledelse"
+];
+
+const COLORS = [
+  { stroke: "#1D9E75", fill: "rgba(29,158,117,0.15)" },
+  { stroke: "#378ADD", fill: "rgba(55,138,221,0.15)" },
+  { stroke: "#D85A30", fill: "rgba(216,90,48,0.15)" },
+  { stroke: "#7F77DD", fill: "rgba(127,119,221,0.15)" },
+  { stroke: "#BA7517", fill: "rgba(186,117,23,0.15)" }
+];
+
+let labels = [...DEFAULT_LABELS];
+let teams = [{ name: "Rådgiver A", scores: [5,5,5,5,5,5,5,5] }];
+
+function init() {
+  renderLabels();
+  renderTeams();
+  draw();
+}
+
+function renderLabels() {
+  const c = document.getElementById("labels-container");
+  c.innerHTML = "";
+  labels.forEach((lbl, i) => {
+    const row = document.createElement("div");
+    row.className = "axis-row";
+    row.innerHTML = `<span class="axis-num">${i+1}</span>
+      <input class="axis-name" type="text" value="${lbl}" oninput="labels[${i}]=this.value;draw()">`;
+    c.appendChild(row);
+  });
+}
+
+function renderTeams() {
+  const c = document.getElementById("teams-container");
+  c.innerHTML = "";
+  teams.forEach((team, ti) => {
+    const col = COLORS[ti % COLORS.length];
+    const block = document.createElement("div");
+    block.className = "team-block";
+    let html = `<div class="team-header">
+      <div class="team-dot" style="background:${col.stroke}"></div>
+      <input class="team-name-input" type="text" value="${team.name}" oninput="teams[${ti}].name=this.value;renderLegend();draw()">
+      ${teams.length > 1 ? `<button class="remove-btn" onclick="removeTeam(${ti})">✕</button>` : ""}
+    </div><div class="scores-grid">`;
+    team.scores.forEach((s, si) => {
+      html += `<div class="score-row">
+        <span>${si+1}</span>
+        <input type="range" min="1" max="10" step="1" value="${s}"
+          oninput="teams[${ti}].scores[${si}]=+this.value;this.nextElementSibling.textContent=this.value;draw()">
+        <span class="score-val">${s}</span>
+      </div>`;
+    });
+    html += "</div>";
+    block.innerHTML = html;
+    c.appendChild(block);
+  });
+  renderLegend();
+}
+
+function renderLegend() {
+  const lg = document.getElementById("legend");
+  lg.innerHTML = teams.map((t, i) => {
+    const col = COLORS[i % COLORS.length];
+    return `<div class="legend-item"><div class="legend-dot-lg" style="background:${col.stroke}"></div>${t.name}</div>`;
+  }).join("");
+}
+
+function addTeam() {
+  if (teams.length >= 5) return;
+  teams.push({ name: `Rådgiver ${String.fromCharCode(65+teams.length)}`, scores: [5,5,5,5,5,5,5,5] });
+  renderTeams();
+  draw();
+}
+
+function removeTeam(ti) {
+  teams.splice(ti, 1);
+  renderTeams();
+  draw();
+}
+
+function resetAll() {
+  labels = [...DEFAULT_LABELS];
+  teams = [{ name: "Rådgiver A", scores: [5,5,5,5,5,5,5,5] }];
+  renderLabels();
+  renderTeams();
+  draw();
+}
+
+function draw() {
+  const canvas = document.getElementById("radarCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2 + 10;
+  const R = Math.min(W, H) * 0.34;
+  const n = labels.length;
+  const MAX = 10;
+
+  const gridColor = "rgba(0,0,0,0.09)";
+  const textColor = "#444";
+
+  function angle(i) { return (Math.PI * 2 * i / n) - Math.PI / 2; }
+  function pt(i, val) {
+    const a = angle(i);
+    const r = (val / MAX) * R;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+
+  for (let ring = 2; ring <= 10; ring += 2) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const p = pt(i, ring);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = ring === 10 ? 1 : 0.7;
+    ctx.stroke();
+
+    if (ring === 5 || ring === 10) {
+      const p = pt(1, ring);
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.font = "10px -apple-system, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(ring, p.x + 3, p.y - 2);
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    const p = pt(i, MAX);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+  }
+
+  teams.forEach((team, ti) => {
+    const col = COLORS[ti % COLORS.length];
+    ctx.beginPath();
+    team.scores.forEach((s, i) => {
+      const p = pt(i, s);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = col.fill;
+    ctx.fill();
+    ctx.strokeStyle = col.stroke;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    team.scores.forEach((s, i) => {
+      const p = pt(i, s);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = col.stroke;
+      ctx.fill();
+    });
+  });
+
+  ctx.font = "12px -apple-system, sans-serif";
+  ctx.fillStyle = textColor;
+  labels.forEach((lbl, i) => {
+    const a = angle(i);
+    const labelR = R + 30;
+    const x = cx + labelR * Math.cos(a);
+    const y = cy + labelR * Math.sin(a);
+    const short = lbl.length > 24 ? lbl.substring(0, 23) + "…" : lbl;
+    const cosA = Math.cos(a);
+    ctx.textAlign = Math.abs(cosA) < 0.15 ? "center" : (cosA > 0 ? "left" : "right");
+    ctx.textBaseline = Math.sin(a) > 0.5 ? "top" : (Math.sin(a) < -0.5 ? "bottom" : "middle");
+    ctx.fillText(short, x, y);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
